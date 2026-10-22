@@ -134,14 +134,31 @@
       font-weight: 700; font-size: min(calc(12.2 * var(--u)), 13px); color: #fff; pointer-events: none; }
     .caps .r { text-align: right; }
     .caps i { font-style: normal; }
+    .hint { display: none; }
     @media (max-width: 820px) {
-      .copy { top: calc(env(safe-area-inset-top, 0px) + 68px); padding: 0 16px; }
+      /* Phone layout: the 1440×810 scene becomes a "head to chest" band pinned to the bottom (central 720u of the
+         plate fills the width, capped at 58% of the viewport height); the headline gets the space above it. */
+      :root { --u: min(calc(100vw / 720), calc(58svh / 810)); }
+      .hero { min-height: 560px; background: linear-gradient(180deg, #02040D 0%, #04081a 70%, #070d22 100%); }
+      .frame { left: calc(50% - 720 * var(--u)); top: auto; bottom: calc(44 * var(--u)); }
+      .frame::before { content: ''; position: absolute; left: 0; right: 0; top: 0; height: calc(95 * var(--u)); z-index: 2; pointer-events: none;
+        background: linear-gradient(180deg, #04081a 0%, rgba(4, 8, 26, 0) 100%); }
+      .frame::after { content: ''; position: absolute; left: 0; right: 0; bottom: calc(-44 * var(--u)); height: calc(110 * var(--u)); z-index: 2; pointer-events: none;
+        background: linear-gradient(180deg, rgba(7, 13, 34, 0) 0%, #070d22 62%, #070d22 100%); }
+      /* headline block centered in the space between the nav and the character band */
+      .copy { top: calc(env(safe-area-inset-top, 0px) + 72px + (100svh - 854 * var(--u) - 72px - 160px) / 2); padding: 0 16px; }
       .copy .eyebrow { font-size: 12px; }
-      .hero-title { font-size: clamp(36px, 12vw, 56px); margin-top: 4px; text-shadow: 0 0 10px #fff, 0 0 26px rgba(170, 205, 255, 0.9), 0 0 56px rgba(60, 110, 255, 0.85); }
-      .hero-sub { font-size: 14px; margin-top: 6px; }
-      .caps { left: 20px; right: 20px; bottom: 18px; font-size: 11px; }
-      .caps span { max-width: 46vw; }
-      .caps i { display: none; }
+      .hero-title { font-size: clamp(40px, 13.5vw, 64px); margin-top: 6px; text-shadow: 0 0 10px #fff, 0 0 26px rgba(170, 205, 255, 0.9), 0 0 56px rgba(60, 110, 255, 0.85); }
+      .hero-sub { font-size: 15px; margin-top: 8px; }
+      .hint { display: block; margin-top: 18px; font-weight: 700; font-size: 10.5px; letter-spacing: 0.3em; text-transform: uppercase; color: rgba(205, 210, 230, 0.55); }
+      .caps { display: none; }
+    }
+    @media (max-width: 820px) and (max-height: 600px) {
+      /* short landscape phones: fall back to the desktop framing */
+      :root { --u: max(calc(100vw / 1440), calc(100vh / 810)); }
+      .frame { top: calc(50% - 405 * var(--u)); bottom: auto; }
+      .frame::before { display: none; }
+      .hint { display: none; }
     }
 
     /* ───────────────────────── tech strip ───────────────────────── */
@@ -169,6 +186,7 @@
     .mission-text { padding: clamp(1.5rem, 3vw, 2.6rem); display: flex; flex-direction: column; gap: 1.2rem; }
     .mission-text p { color: var(--ink); font-weight: 500; line-height: 1.75; font-size: clamp(1rem, 1.5vw, 1.18rem); }
     .mission-text .facts { display: grid; grid-template-columns: repeat(2, 1fr); gap: 0.6rem 1.2rem; margin-top: auto; }
+    @media (max-width: 480px) { .mission-text .facts { grid-template-columns: 1fr; gap: 0.5rem; } }
     .mission-text .facts div { font-size: 0.8rem; color: var(--muted-60); }
     .mission-text .facts div b { display: block; font-size: 0.95rem; color: #fff; font-weight: 600; margin-top: 0.1rem; }
     .stat-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 0.8rem; }
@@ -208,6 +226,7 @@
       background: linear-gradient(160deg, rgba(255, 255, 255, 0.05), rgba(255, 255, 255, 0.01)); border-left: 1px solid var(--stroke); }
     .mission-card.flip .mc-visual { border-left: 0; border-right: 1px solid var(--stroke); }
     @media (max-width: 860px) { .mc-visual, .mission-card.flip .mc-visual { border: 0; border-top: 1px solid var(--stroke); grid-template-rows: none; grid-template-columns: 1fr 1fr; } }
+    @media (max-width: 480px) { .mc-visual { grid-template-columns: 1fr; } .big-stat { min-height: 0; flex-direction: row; align-items: baseline; gap: 0.8rem; } .big-stat b { font-size: 2rem; } }
     .big-stat { border-radius: 20px; border: 1px solid var(--stroke); padding: 1.2rem 1.3rem; display: flex; flex-direction: column; justify-content: flex-end; gap: 0.35rem; background: rgba(2, 4, 13, 0.45); min-height: 140px; }
     .big-stat b { font-family: var(--font-display); font-weight: 900; font-style: italic; font-stretch: 94%; font-size: clamp(2.2rem, 4vw, 3.6rem); line-height: 1; color: #fff; text-shadow: 0 0 28px rgba(150, 190, 255, 0.5); }
     .big-stat small { font-size: 0.78rem; color: var(--muted); line-height: 1.4; }
@@ -299,6 +318,7 @@
       <div class="eyebrow" id="eyebrow">Software Engineer</div>
       <h1 class="display hero-title" id="headline">Pengcheng</h1>
       <p class="hero-sub" id="subtitle">Past the demo and into production.</p>
+      <p class="hint">Tap the red button</p>
     </div>
 
     <div class="caps" id="caps">
@@ -543,7 +563,7 @@
   const reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
   const fine = window.matchMedia('(pointer: fine)').matches;
   const $ = id => document.getElementById(id);
-  const u = () => Math.max(innerWidth / 1440, innerHeight / 810);
+  const u = () => frame.getBoundingClientRect().width / 1440;   // current frame unit, whatever the CSS layout chose
 
   /* ── scene media ───────────────────────────────────── */
   const plate = $('plate'), head = $('head'), helmet = $('helmet'), push = $('push'), frame = $('frame');
@@ -608,11 +628,17 @@
     })();
     head.addEventListener('loadedmetadata', () => { dur = head.duration || 5.04; target = shown = dur / 2; ready = true; head.currentTime = shown; });
     head.addEventListener('seeked', () => { head.style.opacity = 1; }, { once: true });
-    addEventListener('mousemove', e => {
+    const aim = clientX => {
+      // map across whichever is narrower: the frame or the viewport (on phones the frame overflows the screen)
       const r = frame.getBoundingClientRect();
-      const x = (e.clientX - r.left) / r.width;
+      const left = Math.max(r.left, 0), width = Math.min(r.right, innerWidth) - left;
+      const x = (clientX - left) / width;
       target = Math.min(1, Math.max(0, (x - 0.14) / 0.72)) * dur;
-    }, { passive: true });
+      lastMove = performance.now();
+    };
+    addEventListener('mousemove', e => aim(e.clientX), { passive: true });
+    addEventListener('touchmove', e => aim(e.touches[0].clientX), { passive: true });
+    addEventListener('touchstart', e => aim(e.touches[0].clientX), { passive: true });
     (function seekLoop(t) {
       if (ready) {
         if (t - lastMove > 3500) target = dur * (0.5 + 0.32 * Math.sin(t * 0.0006));
