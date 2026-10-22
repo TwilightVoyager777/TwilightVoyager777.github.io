@@ -1,0 +1,44 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 958" width="960" height="958">
+  <defs>
+    <radialGradient id="fresnel" cx="50%" cy="50%" r="50%">
+      <stop offset="0" stop-color="#ffffff" stop-opacity="0.04"/>
+      <stop offset="0.72" stop-color="#ffffff" stop-opacity="0.05"/>
+      <stop offset="0.9" stop-color="#cfe2ff" stop-opacity="0.22"/>
+      <stop offset="1" stop-color="#ffffff" stop-opacity="0.55"/>
+    </radialGradient>
+    <radialGradient id="blueGlow" cx="50%" cy="50%" r="50%">
+      <stop offset="0" stop-color="#7fb4ff" stop-opacity="0.45"/>
+      <stop offset="1" stop-color="#7fb4ff" stop-opacity="0"/>
+    </radialGradient>
+    <radialGradient id="warmGlow" cx="50%" cy="50%" r="50%">
+      <stop offset="0" stop-color="#ffd9a8" stop-opacity="0.35"/>
+      <stop offset="1" stop-color="#ffd9a8" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="streak" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#ffffff" stop-opacity="0.95"/>
+      <stop offset="1" stop-color="#ffffff" stop-opacity="0"/>
+    </linearGradient>
+    <filter id="blur18" x="-30%" y="-30%" width="160%" height="160%"><feGaussianBlur stdDeviation="18"/></filter>
+    <filter id="blur8" x="-30%" y="-30%" width="160%" height="160%"><feGaussianBlur stdDeviation="8"/></filter>
+    <filter id="blur3" x="-30%" y="-30%" width="160%" height="160%"><feGaussianBlur stdDeviation="2.5"/></filter>
+    <clipPath id="dome"><circle cx="480" cy="479" r="432"/></clipPath>
+  </defs>
+  <rect width="960" height="958" fill="#000"/>
+  <g clip-path="url(#dome)">
+    <!-- glass body + fresnel edge -->
+    <circle cx="480" cy="479" r="432" fill="url(#fresnel)"/>
+    <!-- soft environment reflections -->
+    <ellipse cx="700" cy="700" rx="300" ry="240" fill="url(#blueGlow)" filter="url(#blur18)"/>
+    <ellipse cx="300" cy="760" rx="260" ry="150" fill="url(#warmGlow)" filter="url(#blur18)"/>
+    <!-- big soft top-left highlight -->
+    <ellipse cx="290" cy="240" rx="190" ry="110" fill="#ffffff" opacity="0.42" transform="rotate(-32 290 240)" filter="url(#blur18)"/>
+    <!-- crisp specular streaks -->
+    <path d="M150 300 C 200 180, 330 100, 470 80 C 350 120, 240 200, 190 330 Z" fill="url(#streak)" opacity="0.9" filter="url(#blur3)"/>
+    <path d="M118 420 C 130 350, 160 300, 200 260 C 170 320, 150 380, 146 440 Z" fill="#ffffff" opacity="0.55" filter="url(#blur3)"/>
+    <!-- small secondary highlight bottom-right -->
+    <ellipse cx="760" cy="560" rx="60" ry="26" fill="#ffffff" opacity="0.35" transform="rotate(40 760 560)" filter="url(#blur8)"/>
+  </g>
+  <!-- rim -->
+  <circle cx="480" cy="479" r="430" fill="none" stroke="#ffffff" stroke-width="3.5" opacity="0.8"/>
+  <circle cx="480" cy="479" r="430" fill="none" stroke="#bcd6ff" stroke-width="10" opacity="0.35" filter="url(#blur8)"/>
+</svg>

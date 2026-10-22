@@ -1,0 +1,11 @@
+# local-only working files: editor state, browser traces, screenshots, earlier page versions, generated image variants
+.claude/
+.playwright-mcp/
+.DS_Store
+rail-slide*.png
+portfolio.html
+index-jack.html
+ref/*
+!ref/head-turn-src/
+avatar-placeholder.svg
+avatar-placeholder-chrome.svg

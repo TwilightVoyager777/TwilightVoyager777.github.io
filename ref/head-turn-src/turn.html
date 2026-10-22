@@ -1,0 +1,79 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>head-turn renderer</title>
+<style>html,body{margin:0;background:#000}canvas{display:block}</style>
+</head>
+<body>
+<canvas id="out" width="580" height="600"></canvas>
+<script>
+/* Pseudo-3D head turn from a single plate.
+   Crop (plate px, 1920x1080): x 650..1230, y 150..750  -> 580x600 output.
+   Head modeled as an ellipsoid; a yaw by theta re-samples the texture along the sphere surface.
+   render(thetaDeg) draws one frame and returns a PNG data URL. theta<0 looks screen-left, theta>0 screen-right. */
+const CROP = { x: 650, y: 150, w: 580, h: 600 };
+const HEAD = { cx: 940, cy: 500, rx: 172, ry: 215 };      // face-only ellipsoid in plate px (ears and hair stay static)
+const EDGE = 0.4;                                         // displacement fades to 0 over the outer 40% of the radius
+const LEAN = 4;                                           // px the face drifts sideways at full turn
+let src = null, sw = 0, sh = 0, sdata = null;
+
+const plate = new Image();
+plate.src = 'plate-1920x1080.png';
+const ready = new Promise(res => { plate.onload = () => {
+  sw = plate.naturalWidth; sh = plate.naturalHeight;
+  const c = document.createElement('canvas'); c.width = sw; c.height = sh;
+  const g = c.getContext('2d', { willReadFrequently: true }); g.drawImage(plate, 0, 0);
+  sdata = g.getImageData(0, 0, sw, sh).data; src = c; res(true);
+}; });
+
+function sample(x, y, out, o) {          // bilinear sample of the plate at float (x,y)
+  x = Math.max(0, Math.min(sw - 1.001, x)); y = Math.max(0, Math.min(sh - 1.001, y));
+  const x0 = x | 0, y0 = y | 0, fx = x - x0, fy = y - y0;
+  const i00 = (y0 * sw + x0) * 4, i10 = i00 + 4, i01 = i00 + sw * 4, i11 = i01 + 4;
+  for (let c = 0; c < 3; c++) {
+    const a = sdata[i00 + c] * (1 - fx) + sdata[i10 + c] * fx;
+    const b = sdata[i01 + c] * (1 - fx) + sdata[i11 + c] * fx;
+    out[o + c] = a * (1 - fy) + b * fy;
+  }
+  out[o + 3] = 255;
+}
+
+async function render(thetaDeg) {
+  await ready;
+  const th = thetaDeg * Math.PI / 180, s = Math.sin(th), c = Math.cos(th);
+  const k = thetaDeg / 14;                                // -1..1 at the design range
+  const canvas = document.getElementById('out');
+  const ctx = canvas.getContext('2d');
+  const img = ctx.createImageData(CROP.w, CROP.h);
+  const d = img.data;
+  const cx = HEAD.cx + LEAN * k, cy = HEAD.cy;
+  for (let j = 0; j < CROP.h; j++) {
+    const py = CROP.y + j;
+    const v = (py - cy) / HEAD.ry;
+    for (let i = 0; i < CROP.w; i++) {
+      const px = CROP.x + i;
+      const u = (px - cx) / HEAD.rx;
+      const r2 = u * u + v * v;
+      let sx = px, sy = py;
+      if (r2 < 1) {
+        const z = Math.sqrt(1 - r2);
+        const us = u * c - z * s;                          // surface point before the yaw
+        let dx = (us - u) * HEAD.rx;                       // displacement in px
+        const r = Math.sqrt(r2);
+        let fade = r > 1 - EDGE ? (1 - r) / EDGE : 1;      // soften toward the silhouette (smoothstep)
+        fade = fade * fade * (3 - 2 * fade);
+        dx *= fade;
+        sx = px + dx - LEAN * k * fade;                    // lean: the head itself drifts a little
+      }
+      sample(sx, sy, d, (j * CROP.w + i) * 4);
+    }
+  }
+  ctx.putImageData(img, 0, 0);
+  return canvas.toDataURL('image/png');
+}
+window.render = render;
+window.renderReady = ready;
+</script>
+</body>
+</html>
