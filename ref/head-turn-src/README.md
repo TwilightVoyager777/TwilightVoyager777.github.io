@@ -26,16 +26,19 @@ Sharpen (LivePortrait renders the face at 512 px, so it comes out softer than th
 ./realesrgan-ncnn-vulkan -i /tmp/frames -o /tmp/frames-sr -n realesrgan-x4plus -s 4 -f png     # ≈ 8 min for 120 frames on an M-series GPU
 for f in /tmp/frames-sr/*.png; do ffmpeg -i "$f" -vf scale=580:600:flags=lanczos /tmp/frames-580/$(basename "$f"); done
 python composite-frames.py plate-clip-580x600.png /tmp/frames-sr /tmp/frames-comp 100 30 480 550 45   # also scales 4x frames back to 580x600
+python neck-twist.py plate-clip-580x600.png /tmp/frames-comp /tmp/frames-twist                         # neck follows the chin (see below)
 python - <<'PY'   # paste each 580x600 frame into the full 1920x1080 plate at (650,150)
 import cv2, glob, os
 plate = cv2.imread('../plate-1920x1080.png')
-for f in sorted(glob.glob('/tmp/frames-comp/*.png')):
+for f in sorted(glob.glob('/tmp/frames-twist/*.png')):
     out = plate.copy(); out[150:750, 650:1230] = cv2.imread(f); cv2.imwrite('/tmp/full/' + os.path.basename(f), out)
 PY
 ffmpeg -framerate 24 -i /tmp/full/f%03d.png -vf "scale=out_color_matrix=bt709:out_range=tv,format=yuv420p" -color_range tv -colorspace bt709 -color_primaries bt709 -color_trc bt709 \
   -c:v libx264 -preset slow -crf 21 -g 4 -keyint_min 4 -sc_threshold 0 -movflags +faststart hero.mp4     # ≈ 7 MB
 ```
 `composite-frames.py` blends each frame back onto the plate crop (`plate-clip-580x600.png` = plate px (650,150) 580×600): the moving zone x 100–480 / y 30–550 is kept, everything else feathers to the plate over 45 px.
+
+`neck-twist.py`: with stitching on, LivePortrait keeps the neck frozen while the head turns, which reads as "the Adam's apple doesn't move". The script measures each frame's chin displacement (skin centroid in the chin band) and shears the neck interior by that amount at the top of the neck, tapering to zero at the base; the shift also fades to zero at the neck silhouette (distance profile) so no pixel samples the cushion. Rendering with stitching OFF instead moves the collar ~12 px and smears the cushion; blending the two renders was tried and doesn't work (they don't line up).
 
 The final clip is the **whole scene**, not a head-only crop: the page shows `hero.mp4` covering the frame 1:1 (the plate JPEG is only the poster until the clip is ready). A head-only clip pasted over the image showed its rectangle in Safari/macOS, which renders video and images with different tone curves; with one full-frame video there is nothing to mismatch. The BT.709 tags above keep that tone shift small anyway.
 
