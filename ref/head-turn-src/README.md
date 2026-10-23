@@ -25,7 +25,7 @@ Sharpen (LivePortrait renders the face at 512 px, so it comes out softer than th
 ```bash
 ./realesrgan-ncnn-vulkan -i /tmp/frames -o /tmp/frames-sr -n realesrgan-x4plus -s 4 -f png     # ≈ 8 min for 120 frames on an M-series GPU
 for f in /tmp/frames-sr/*.png; do ffmpeg -i "$f" -vf scale=580:600:flags=lanczos /tmp/frames-580/$(basename "$f"); done
-python composite-frames.py plate-clip-580x600.png /tmp/frames-sr /tmp/frames-comp 100 30 480 550 45   # also scales 4x frames back to 580x600
+python composite-motion.py plate-clip-580x600.png /tmp/frames /tmp/frames-sr /tmp/frames-comp      # motion mask; also scales 4x frames back to 580x600
 python neck-twist.py plate-clip-580x600.png /tmp/frames-comp /tmp/frames-twist                         # neck follows the chin (see below)
 python - <<'PY'   # paste each 580x600 frame into the full 1920x1080 plate at (650,150)
 import cv2, glob, os
@@ -36,7 +36,7 @@ PY
 ffmpeg -framerate 24 -i /tmp/full/f%03d.png -vf "scale=out_color_matrix=bt709:out_range=tv,format=yuv420p" -color_range tv -colorspace bt709 -color_primaries bt709 -color_trc bt709 \
   -c:v libx264 -preset slow -crf 21 -g 4 -keyint_min 4 -sc_threshold 0 -movflags +faststart hero.mp4     # ≈ 7 MB
 ```
-`composite-frames.py` blends each frame back onto the plate crop (`plate-clip-580x600.png` = plate px (650,150) 580×600): the moving zone x 100–480 / y 30–550 is kept, everything else feathers to the plate over 45 px.
+`composite-motion.py` builds a **motion mask** from the raw frames (any pixel that changes by >10 levels anywhere in the sequence, cleaned up, dilated 8 px, feathered) and composites the super-resolved frames onto the plate crop (`plate-clip-580x600.png` = plate px (650,150) 580×600) through it. Everything static, including the cushion and collar right next to the neck, is therefore the untouched plate. (A plain box mask was tried first: the renderer re-synthesises static areas about 20 levels darker, which showed as two dark bands beside the neck.)
 
 `neck-twist.py`: with stitching on, LivePortrait keeps the neck frozen while the head turns, which reads as "the Adam's apple doesn't move". The script measures each frame's chin displacement (skin centroid in the chin band) and shears the neck interior by that amount at the top of the neck, tapering to zero at the base; the shift also fades to zero at the neck silhouette (distance profile) so no pixel samples the cushion. Rendering with stitching OFF instead moves the collar ~12 px and smears the cushion; blending the two renders was tried and doesn't work (they don't line up).
 
