@@ -34,7 +34,6 @@
       /* 1440×810 frame unit: the hero scene is laid out in these units */
       --u: max(calc(100vw / 1440), calc(100vh / 810));
       /* scene geometry in frame units, measured on assets/plate.jpg (1920×1080 → ×0.75) */
-      --head-x: 487.5; --head-y: 112.5; --head-w: 435; --head-h: 450;     /* head-turn clip crop: plate px (650,150) 580×600 */
       --helmet-x: 480; --helmet-y: 116; --helmet-s: 450;                   /* glass dome: plate px (640,155) 600×600 */
       --push-x: 664; --push-y: 709; --push-s: 82;                          /* chest button: plate px center (940,1000), ~110px wide */
     }
@@ -107,10 +106,9 @@
     .hero { position: relative; height: 100svh; min-height: 560px; overflow: hidden; background: var(--page); isolation: isolate; }
     .frame { position: absolute; width: calc(1440 * var(--u)); height: calc(810 * var(--u)); left: calc(50% - 720 * var(--u)); top: calc(50% - 405 * var(--u)); }
     .plate { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
-    .head { position: absolute; left: calc(var(--head-x) * var(--u)); top: calc(var(--head-y) * var(--u)); width: calc(var(--head-w) * var(--u)); height: calc(var(--head-h) * var(--u));
-      object-fit: fill; opacity: 0; transition: opacity 0.6s; pointer-events: none; }
-      /* no mask: each frame is pre-composited onto the plate (ref/head-turn-src), so outside the moving zone the
-         clip already equals the plate. An elliptical fade here used to cut through the jaw and neck and ghost them. */
+    /* the head-turn clip is the whole 1920×1080 scene (only the head moves): it covers the plate 1:1, so there is
+       no seam, no mask and no image-vs-video color mismatch inside the frame */
+    .head { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; opacity: 0; transition: opacity 0.6s; pointer-events: none; }
     .helmet { position: absolute; left: calc(var(--helmet-x) * var(--u)); top: calc(var(--helmet-y) * var(--u)); width: calc(var(--helmet-s) * var(--u)); height: calc(var(--helmet-s) * var(--u));
       mix-blend-mode: screen; opacity: 0; pointer-events: none;
       -webkit-mask-image: linear-gradient(to bottom, #000 76%, transparent 92%);
@@ -551,11 +549,11 @@
   /* ── MEDIA ─────────────────────────────────────────────
      Swap these three for your own avatar scene later:
      plate  : 1920×1080 still of the character looking straight ahead, in front of the planet horizon
-     head   : 580×600 clip, a tight crop around the head, turning evenly from screen-left (frame 0) to screen-right (last frame); never played, only scrubbed
+     head   : 1920×1080 clip of the same scene, only the head turning evenly from screen-left (frame 0) to screen-right (last frame); never played, only scrubbed
      helmet : 960×958 glass dome on pure black (blended with screen) */
   const MEDIA = {
     plate:  'assets/plate.jpg',    // own asset: generated character (ref/avatar-s1-gpt-1536x864.png) upscaled to 1920×1080
-    head:   'assets/head.mp4',     // own asset: pseudo-3D head turn rendered from the plate (source: ref/head-turn-src). Empty = head-follow disabled.
+    head:   'assets/hero.mp4',     // own asset: full 1920×1080 scene, head turning screen-left → screen-right (source: ref/head-turn-src). Empty = head-follow disabled.
     helmet: 'assets/helmet.png'   // own asset: glass dome on black, source in assets/helmet.svg
   };
 
