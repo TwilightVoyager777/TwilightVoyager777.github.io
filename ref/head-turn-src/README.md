@@ -20,26 +20,28 @@ PYTORCH_ENABLE_MPS_FALLBACK=1 .venv/bin/python /path/to/lp-make-frames.py \
 ```
 `--yaw -22` makes frame 0 look screen-left and the last frame screen-right (the site maps cursor x to clip time). `--eye` makes the eyes lead the turn. Keep stitching ON (the default, `--stitch 1`): it holds the neck and collar still so the frames can be composited onto the plate. Without it the whole collar shifts ~12 px and no mask can hide the seam. (The "ghost chin" seen earlier came from the page's elliptical mask cutting through the jaw, not from stitching.)
 
-Sharpen (LivePortrait renders the face at 512 px, so it comes out softer than the plate): run the official
-[Real-ESRGAN ncnn macOS build](https://github.com/xinntao/Real-ESRGAN/releases) over the frames with the general x4plus model, then scale back:
+Post-processing (one uniform chain for the whole frame, no masks, no compositing):
 ```bash
-./realesrgan-ncnn-vulkan -i /tmp/frames -o /tmp/frames-sr -n realesrgan-x4plus -s 4 -f png     # ≈ 8 min for 120 frames on an M-series GPU
-for f in /tmp/frames-sr/*.png; do ffmpeg -i "$f" -vf scale=580:600:flags=lanczos /tmp/frames-580/$(basename "$f"); done
-python composite-motion.py plate-clip-580x600.png /tmp/frames /tmp/frames-sr /tmp/frames-comp      # motion mask; also scales 4x frames back to 580x600
-python neck-twist.py plate-clip-580x600.png /tmp/frames-comp /tmp/frames-twist                         # neck follows the chin (see below)
-python - <<'PY'   # paste each 580x600 frame into the full 1920x1080 plate at (650,150)
+# 1. neck follows the chin, applied inside the 960x960 render at the head crop (190,150) 580x600
+mkdir /tmp/crop && for f in /tmp/frames/*.png; do ffmpeg -i "$f" -vf crop=580:600:190:150 /tmp/crop/$(basename "$f"); done
+python neck-twist.py plate-clip-580x600.png /tmp/crop /tmp/twist
+# 2. paste the twisted crop back into each 960 render, and the 960 render into the full 1920x1080 plate at (460,0)
+python - <<'PY'
 import cv2, glob, os
 plate = cv2.imread('../plate-1920x1080.png')
-for f in sorted(glob.glob('/tmp/frames-twist/*.png')):
-    out = plate.copy(); out[150:750, 650:1230] = cv2.imread(f); cv2.imwrite('/tmp/full/' + os.path.basename(f), out)
+for f in sorted(glob.glob('/tmp/frames/*.png')):
+    b = os.path.basename(f); fr = cv2.imread(f); fr[150:750, 190:770] = cv2.imread('/tmp/twist/' + b)
+    out = plate.copy(); out[0:960, 460:1420] = fr; cv2.imwrite('/tmp/full/' + b, out)
 PY
-ffmpeg -framerate 24 -i /tmp/full/f%03d.png -vf "scale=out_color_matrix=bt709:out_range=tv,format=yuv420p" -color_range tv -colorspace bt709 -color_primaries bt709 -color_trc bt709 \
+# 3. super-resolve EVERY FULL FRAME (Real-ESRGAN x4plus, scaled straight back to 1920x1080): ~30 s/frame, ~1 h for 120
+./sr-full.sh /tmp/full /tmp/full-sr
+# 4. encode, and use the centre frame as the poster so image and video are literally the same pixels
+ffmpeg -framerate 24 -i /tmp/full-sr/f%03d.png -vf "scale=out_color_matrix=bt709:out_range=tv,format=yuv420p" -color_range tv -colorspace bt709 -color_primaries bt709 -color_trc bt709 \
   -c:v libx264 -preset slow -crf 21 -g 4 -keyint_min 4 -sc_threshold 0 -movflags +faststart hero.mp4     # ≈ 7 MB
+ffmpeg -i /tmp/full-sr/f060.png -q:v 2 plate.jpg
 ```
-`composite-motion.py` builds a **motion mask** from the raw frames (any pixel that changes by >10 levels anywhere in the sequence, cleaned up, dilated 8 px, feathered) and composites the super-resolved frames onto the plate crop (`plate-clip-580x600.png` = plate px (650,150) 580×600) through it. Everything static, including the cushion and collar right next to the neck, is therefore the untouched plate. (A plain box mask was tried first: the renderer re-synthesises static areas about 20 levels darker, which showed as two dark bands beside the neck.)
+Why no masks: every partial approach (head-only clip over the image, box mask, motion mask) left a boundary somewhere between "video pixels" and "image pixels" that showed up as a rectangle, dark bands or ghosting in some browser. Now the entire frame goes through the same chain and the poster is one of the frames.
 
-`neck-twist.py`: with stitching on, LivePortrait keeps the neck frozen while the head turns, which reads as "the Adam's apple doesn't move". The script measures each frame's chin displacement (skin centroid in the chin band) and shears the neck interior by that amount at the top of the neck, tapering to zero at the base; the shift also fades to zero at the neck silhouette (distance profile) so no pixel samples the cushion. Rendering with stitching OFF instead moves the collar ~12 px and smears the cushion; blending the two renders was tried and doesn't work (they don't line up).
-
-The final clip is the **whole scene**, not a head-only crop: the page shows `hero.mp4` covering the frame 1:1 (the plate JPEG is only the poster until the clip is ready). A head-only clip pasted over the image showed its rectangle in Safari/macOS, which renders video and images with different tone curves; with one full-frame video there is nothing to mismatch. The BT.709 tags above keep that tone shift small anyway.
+The page shows `hero.mp4` covering the frame 1:1; `plate.jpg` is the clip's centre frame and only shows until the clip is ready.
 
 `turn.html` + `render-turn.mjs` are the earlier pseudo-3D attempt (sphere-warp of the still image), kept for reference; `head-pseudo3d.mp4` is its output.
