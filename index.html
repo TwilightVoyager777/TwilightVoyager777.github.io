@@ -108,10 +108,9 @@
     .frame { position: absolute; width: calc(1440 * var(--u)); height: calc(810 * var(--u)); left: calc(50% - 720 * var(--u)); top: calc(50% - 405 * var(--u)); }
     .plate { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
     .head { position: absolute; left: calc(var(--head-x) * var(--u)); top: calc(var(--head-y) * var(--u)); width: calc(var(--head-w) * var(--u)); height: calc(var(--head-h) * var(--u));
-      object-fit: fill; opacity: 0; transition: opacity 0.6s; pointer-events: none;
-      /* the clip is pasted back onto the same plate, so only the outer rim needs feathering; a wide fade ghosts the jaw */
-      -webkit-mask-image: radial-gradient(ellipse 50% 50% at 50% 46%, #000 88%, transparent 100%);
-              mask-image: radial-gradient(ellipse 50% 50% at 50% 46%, #000 88%, transparent 100%); }
+      object-fit: fill; opacity: 0; transition: opacity 0.6s; pointer-events: none; }
+      /* no mask: each frame is pre-composited onto the plate (ref/head-turn-src), so outside the moving zone the
+         clip already equals the plate. An elliptical fade here used to cut through the jaw and neck and ghost them. */
     .helmet { position: absolute; left: calc(var(--helmet-x) * var(--u)); top: calc(var(--helmet-y) * var(--u)); width: calc(var(--helmet-s) * var(--u)); height: calc(var(--helmet-s) * var(--u));
       mix-blend-mode: screen; opacity: 0; pointer-events: none;
       -webkit-mask-image: linear-gradient(to bottom, #000 76%, transparent 92%);
