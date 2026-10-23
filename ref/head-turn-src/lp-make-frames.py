@@ -30,11 +30,14 @@ ap.add_argument('--eye', type=float, default=0.8, help='eyeball_direction_x = ey
 ap.add_argument('--scale', type=float, default=2.3, help='cropper scale (bigger = more context, smaller face)')
 ap.add_argument('--crop', default='', help='x,y,w,h to cut from the pasted-back frame')
 ap.add_argument('--only', default='', help='comma list of frame indices to render (for quick checks)')
+ap.add_argument('--no-stitch', action='store_true', help='skip the stitching module (head moves freely, neck not locked)')
+ap.add_argument('--vy', type=float, default=-0.125, help='cropper vy_ratio')
 a = ap.parse_args()
 os.makedirs(a.out, exist_ok=True)
 
 args = ArgumentConfig()
 args.scale = a.scale
+args.vy_ratio = a.vy
 inference_cfg = partial_fields(InferenceConfig, args.__dict__)
 crop_cfg = partial_fields(CropConfig, args.__dict__)
 pipe = gp.GradioPipeline(inference_cfg, crop_cfg, args)
@@ -71,7 +74,8 @@ with torch.no_grad():
         if ex != 0:
             delta = pipe.update_delta_new_eyeball_direction(torch.tensor(ex).to(device), torch.tensor(0.0).to(device), delta)
         x_d = scale0 * (x_c_s @ R_new + delta) + t_s
-        x_d = w.stitching(x_s, x_d)
+        if not a.no_stitch:
+            x_d = w.stitching(x_s, x_d)
         out = w.warp_decode(f_s, x_s, x_d)
         out = w.parse_output(out['out'])[0]
         frame = gp.paste_back(out, M_c2o, img_rgb, mask_ori)   # RGB uint8, full source size

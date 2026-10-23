@@ -16,9 +16,16 @@ python -c "from huggingface_hub import snapshot_download; snapshot_download('Kwa
 Render (from inside the LivePortrait directory; ~70 s for 120 frames):
 ```bash
 PYTORCH_ENABLE_MPS_FALLBACK=1 .venv/bin/python /path/to/lp-make-frames.py \
-  --src /path/to/src-960.png --out /tmp/frames --frames 120 --yaw -22 --eye 0.8 --crop 190,150,580,600
-ffmpeg -framerate 24 -i /tmp/frames/f%03d.png -c:v libx264 -preset slow -crf 18 -g 4 -keyint_min 4 -sc_threshold 0 -pix_fmt yuv420p -movflags +faststart head.mp4
+  --src /path/to/src-960.png --out /tmp/frames --frames 120 --yaw -22 --eye 0.8 --no-stitch --crop 190,150,580,600
 ```
-`--yaw -22` makes frame 0 look screen-left and the last frame screen-right (the site maps cursor x to clip time). `--eye` makes the eyes lead the turn. Increase `--scale` (default 2.3) if the paste-back boundary shows.
+`--yaw -22` makes frame 0 look screen-left and the last frame screen-right (the site maps cursor x to clip time). `--eye` makes the eyes lead the turn. `--no-stitch` skips LivePortrait's stitching module: with it on, the original jaw stays visible as a second contour under the turned chin. Increase `--scale` (default 2.3) if the paste-back boundary shows.
+
+Sharpen (LivePortrait renders the face at 512 px, so it comes out softer than the plate): run the official
+[Real-ESRGAN ncnn macOS build](https://github.com/xinntao/Real-ESRGAN/releases) over the frames with the general x4plus model, then scale back:
+```bash
+./realesrgan-ncnn-vulkan -i /tmp/frames -o /tmp/frames-sr -n realesrgan-x4plus -s 4 -f png     # ≈ 8 min for 120 frames on an M-series GPU
+for f in /tmp/frames-sr/*.png; do ffmpeg -i "$f" -vf scale=580:600:flags=lanczos /tmp/frames-580/$(basename "$f"); done
+ffmpeg -framerate 24 -i /tmp/frames-580/f%03d.png -c:v libx264 -preset slow -crf 17 -g 4 -keyint_min 4 -sc_threshold 0 -pix_fmt yuv420p -movflags +faststart head.mp4
+```
 
 `turn.html` + `render-turn.mjs` are the earlier pseudo-3D attempt (sphere-warp of the still image), kept for reference; `head-pseudo3d.mp4` is its output.
